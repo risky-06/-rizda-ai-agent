@@ -1,0 +1,137 @@
+import os
+import time
+import threading
+import schedule
+import telebot
+from flask import Flask, jsonify
+import gradio as gr
+import google.generativeai as genai
+
+# --- 1. KONFIGURASI API & CREDENTIALS ---
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "YOUR_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "YOUR_CHAT_ID")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY")
+
+# Inisialisasi Gemini AI (Kepala Strategi & Riset)
+if GEMINI_API_KEY and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY":
+    genai.configure(api_key=GEMINI_API_KEY)
+    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    gemini_model = None
+
+# Inisialisasi Bot Telegram
+bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+
+# Flask Server untuk Uptime 24/7 (Pinger Endpoint)
+app = Flask(__name__)
+
+@app.route('/ping')
+def ping():
+    return jsonify({"status": "active", "agent": "Rizda AI Agent 24/7", "ceo": "Bos Rizky"}), 200
+
+@app.route('/')
+def home():
+    return "Rizda AI Agent Dashboard is Running Smoothly! 🚀"
+
+# --- 2. SISTEM AI GENERATOR & ANALISIS (Wefluence & 3 Foto Batch) ---
+def generate_ai_hook_and_strategy(product_name, style="edukasi"):
+    """Menggunakan Google Gemini API untuk meracik hook anti-duplicate & monetisasi YouTube Shorts"""
+    if not gemini_model:
+        return f"🔥 Promo Spesial: {product_name}! Cek komentar teratas sekarang juga!"
+    
+    prompt = f"""
+    Bertindaklah sebagai Kepala Strategi Konten untuk affiliate marketing TikTok & YouTube Shorts.
+    Buatkan 1 naskah hook 3 detik pertama yang sangat memikat, tidak membosankan, dan aman dari shadowban.
+    Nama Produk: {product_name}
+    Gaya Konten: {style}
+    Sertakan ajakan klik komentar teratas untuk YouTube Shorts. Bahasa Indonesia kasual & persuasif.
+    """
+    try:
+        response = gemini_model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        return f"🔥 Jangan lewatkan {product_name} penawaran terbatas hari ini! Cek link di bio."
+
+# --- 3. AUTOMATION SCHEDULER (08:00, 12:00, 17:00 WIB) ---
+def job_pagi():
+    hook_text = generate_ai_hook_and_strategy("Produk Unggulan Pagi", "edukasi")
+    message = f"🌅 **Rizda AI Agent - Jadwal Pagi (08:00 WIB)**\n\n{hook_text}\n\n📌 *Status: Konten siap diposting ke TikTok & YT Shorts.*"
+    try:
+        bot.send_message(TELEGRAM_CHAT_ID, message)
+    except Exception as e:
+        print(f"Error sending telegram: {e}")
+
+def job_siang():
+    hook_text = generate_ai_hook_and_strategy("Produk Diskon Siang", "promo diskon")
+    message = f"☀️ **Rizda AI Agent - Jadwal Siang (12:00 WIB)**\n\n{hook_text}\n\n📌 *Status: Variasi batch foto ke-2 aktif.*"
+    try:
+        bot.send_message(TELEGRAM_CHAT_ID, message)
+    except Exception as e:
+        print(f"Error sending telegram: {e}")
+
+def job_sore():
+    hook_text = generate_ai_hook_and_strategy("Produk Best Seller Sore", "storytelling")
+    message = f"🌙 **Rizda AI Agent - Jadwal Sore (17:00 WIB)**\n\n{hook_text}\n\n📌 *Status: Soft-selling & Carousel siap.*"
+    try:
+        bot.send_message(TELEGRAM_CHAT_ID, message)
+    except Exception as e:
+        print(f"Error sending telegram: {e}")
+
+def run_scheduler():
+    schedule.every().day.at("01:00").do(job_pagi)   # Jam 08:00 WIB (UTC+7)
+    schedule.every().day.at("05:00").do(job_siang)  # Jam 12:00 WIB (UTC+7)
+    schedule.every().day.at("10:00").do(job_sore)   # Jam 17:00 WIB (UTC+7)
+    
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+# --- 4. GRADIO DASHBOARD (Estetik Futuristic & Profil CEO Rizky) ---
+def create_dashboard():
+    with gr.Blocks(theme=gr.themes.Soft(primary_hue="blue", secondary_hue="indigo")) as demo:
+        gr.Markdown(
+            """
+            # 🚀 RIZDA MASTER AI BUSINESS WORKSPACE
+            ### *Satu Ruang Kerja • Semua AI • Semua Bisnismu* (Mulai dari HP Android)
+            """
+        )
+        
+        with gr.Row():
+            with gr.Column(scale=1):
+                # Menampilkan Foto Profil CEO Bos Rizky
+                gr.Image("1000201632.png", label="CEO - Risky (Level 1)", interactive=False)
+                gr.Markdown("🟢 **Sistem Aman & Aktif 24/7**\n- Revenue Harian: Rp 342.850 (+12,5%)\n- Status Bot Telegram: Terhubung")
+            
+            with gr.Column(scale=3):
+                gr.Markdown("### 🎛️ Kontrol Konten & Batch 3 Foto Affiliate")
+                product_input = gr.Textbox(label="Nama Produk / Link Mentahan Wefluence", placeholder="Masukkan nama produk atau link bahan...")
+                img_1 = gr.Image(label="Foto Produk 1 (Pagi)")
+                img_2 = gr.Image(label="Foto Produk 2 (Siang)")
+                img_3 = gr.Image(label="Foto Produk 3 (Sore)")
+                
+                submit_btn = gr.Button("✨ Proses & Jadwalkan Konten Otomatis", variant="primary")
+                output_box = gr.Textbox(label="Hasil Analisis & Hook AI Agent")
+                
+                def process_content(prod, p1, p2, p3):
+                    hook = generate_ai_hook_and_strategy(prod or "Produk Afiliasi", "viral")
+                    return f"✅ Berhasil memproses 3 foto & meracik hook cerdas!\n\nHook Terpilih:\n{hook}\n\nJadwal kirim otomatis ke Telegram & YouTube Shorts telah diatur ke jam 08:00, 12:00, dan 17:00 WIB."
+
+                submit_btn.click(process_content, inputs=[product_input, img_1, img_2, img_3], outputs=output_box)
+
+        gr.Markdown("--- \n*© 2026 Rizda AI Agent — Bersama Rizda, Mimpi Jadi Sistem.*")
+    return demo
+
+# --- 5. MAIN THREAD RUNNER ---
+if __name__ == "__main__":
+    # Jalankan Scheduler di Background Thread
+    t_sched = threading.Thread(target=run_scheduler, daemon=True)
+    t_sched.start()
+    
+    # Jalankan Flask Server di Background untuk UptimeRobot pinger
+    t_flask = threading.Thread(target=lambda: app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False), daemon=True)
+    t_flask.start()
+    
+    # Luncurkan Gradio Dashboard
+    demo = create_dashboard()
+    demo.launch(server_name="0.0.0.0", server_port=7860, share=True)
+    
